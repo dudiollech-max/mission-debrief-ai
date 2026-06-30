@@ -43,13 +43,15 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Uploads and outputs
-backend/uploads/
-backend/output/
+# Uploads and outputs (runtime data — never commit)
+uploads/
 output/
 *.mp4
 *.mov
 *.avi
+*.mkv
+*.h264
+*.h265
 
 # Logs
 *.log
