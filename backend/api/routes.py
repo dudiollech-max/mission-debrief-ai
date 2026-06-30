@@ -2,18 +2,17 @@
 Mission Debrief AI — API Routes
 Endpoints: /ingest, /debrief, /status, /result, /demo
 """
+from __future__ import annotations
 
 import asyncio
 import json
 import time
 import uuid
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 import aiofiles
 import structlog
-from __future__ import annotations
-from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
