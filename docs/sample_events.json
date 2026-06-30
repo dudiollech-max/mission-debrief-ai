@@ -1,0 +1,127 @@
+{
+  "events": [
+    {
+      "elapsed_seconds": 0,
+      "type": "mission_start",
+      "severity": "info",
+      "message": "Mission commenced \u2014 SolarDrone MK2 pre-flight checks passed",
+      "data": {}
+    },
+    {
+      "elapsed_seconds": 12,
+      "type": "takeoff",
+      "severity": "info",
+      "message": "Takeoff initiated from pad A",
+      "data": {
+        "pad": "A"
+      }
+    },
+    {
+      "elapsed_seconds": 60,
+      "type": "cruise_altitude",
+      "severity": "info",
+      "message": "Reached cruise altitude 50m AGL \u2014 inspection scan commencing",
+      "data": {
+        "alt_m": 50
+      }
+    },
+    {
+      "elapsed_seconds": 330,
+      "type": "row_scan_start",
+      "severity": "info",
+      "message": "Beginning panel scan row 3 / 10",
+      "data": {
+        "row": 3
+      }
+    },
+    {
+      "elapsed_seconds": 720,
+      "type": "panel_hotspot",
+      "severity": "critical",
+      "message": "Thermal anomaly detected: Panel #47 \u2014 temperature variance 340\u00b0C above baseline",
+      "data": {
+        "panel": 47,
+        "temp_variance_c": 340,
+        "action": "Flag for ground inspection"
+      }
+    },
+    {
+      "elapsed_seconds": 725,
+      "type": "camera_zoom",
+      "severity": "info",
+      "message": "Camera zoomed to 4\u00d7 on Panel #47 for detailed capture",
+      "data": {}
+    },
+    {
+      "elapsed_seconds": 900,
+      "type": "row_scan_start",
+      "severity": "info",
+      "message": "Beginning panel scan row 7 / 10",
+      "data": {
+        "row": 7
+      }
+    },
+    {
+      "elapsed_seconds": 1200,
+      "type": "gps_accuracy",
+      "severity": "warning",
+      "message": "GPS accuracy degraded momentarily \u2014 HDOP 2.8 (threshold 2.5)",
+      "data": {
+        "hdop": 2.8,
+        "action": "Holding position for 5s until lock improves"
+      }
+    },
+    {
+      "elapsed_seconds": 1205,
+      "type": "gps_restored",
+      "severity": "info",
+      "message": "GPS accuracy restored \u2014 HDOP 1.4",
+      "data": {
+        "hdop": 1.4
+      }
+    },
+    {
+      "elapsed_seconds": 1800,
+      "type": "row_scan_start",
+      "severity": "info",
+      "message": "Scan complete \u2014 all 200 panels covered. Returning to waypoint home.",
+      "data": {
+        "panels_scanned": 200
+      }
+    },
+    {
+      "elapsed_seconds": 2282,
+      "type": "battery_low",
+      "severity": "warning",
+      "message": "Battery at 30% \u2014 initiating Return-To-Home",
+      "data": {
+        "battery_pct": 30,
+        "action": "RTH auto-initiated"
+      }
+    },
+    {
+      "elapsed_seconds": 2290,
+      "type": "rth_start",
+      "severity": "info",
+      "message": "Return-To-Home engaged \u2014 heading to launch pad A",
+      "data": {}
+    },
+    {
+      "elapsed_seconds": 2580,
+      "type": "landing",
+      "severity": "info",
+      "message": "Descending for landing \u2014 pad A acquired",
+      "data": {}
+    },
+    {
+      "elapsed_seconds": 2700,
+      "type": "mission_end",
+      "severity": "info",
+      "message": "Mission complete \u2014 SolarDrone MK2 landed safely",
+      "data": {
+        "panels_scanned": 200,
+        "anomalies_flagged": 1
+      }
+    }
+  ]
+}

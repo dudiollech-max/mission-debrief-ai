@@ -7,10 +7,11 @@ Handles:
 - Sensor logs: JSON event list → structured events
 """
 
+from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -26,9 +27,9 @@ class MissionData:
     """Container for all parsed mission data."""
 
     def __init__(self):
-        self.telemetry_df: pd.DataFrame | None = None
+        self.telemetry_df: Optional[pd.DataFrame] = None
         self.events: list[dict] = []
-        self.video_path: str | None = None
+        self.video_path: Optional[str] = None
         self.frames: list[dict] = []  # [{timestamp, path, description}]
         self.duration_seconds: int = 0
         self.start_time: str = ""
@@ -81,31 +82,95 @@ def ingest_mission_data(session: dict) -> MissionData:
     return data
 
 
+# ── Column name normalization maps ──────────────────────────────────────────
+# Maps common drone-export column names → our internal schema names.
+_COL_ALIASES = {
+    # DJI Flight Record CSV
+    "OSD.latitude": "latitude",
+    "OSD.longitude": "longitude",
+    "OSD.altitude [m]": "altitude_m",
+    "OSD.height [m]": "altitude_m",
+    "OSD.speed [m/s]": "speed_ms",
+    "OSD.hSpeed [m/s]": "speed_ms",
+    "OSD.vSpeed [m/s]": "vertical_speed_ms",
+    "OSD.pitch": "pitch_deg",
+    "OSD.roll": "roll_deg",
+    "OSD.yaw": "heading_deg",
+    "OSD.heading": "heading_deg",
+    "BATTERY.chargeLevel [%]": "battery_pct",
+    "BATTERY.temperature [°C]": "temperature_c",
+    "BATTERY.temperature [oC]": "temperature_c",
+    "OSD.flycState": "flight_state",
+    "OSD.flyTime [s]": "elapsed_seconds",
+    # ArduPilot / MAVLink CSV
+    "Alt": "altitude_m",
+    "RelAlt": "altitude_m",
+    "Spd": "speed_ms",
+    "GSpd": "speed_ms",
+    "Bat": "battery_pct",
+    "Hdg": "heading_deg",
+    "Lat": "latitude",
+    "Lng": "longitude",
+    "Lon": "longitude",
+    # Generic / Autel / Skydio
+    "lat": "latitude",
+    "lng": "longitude",
+    "lon": "longitude",
+    "alt": "altitude_m",
+    "altitude": "altitude_m",
+    "speed": "speed_ms",
+    "battery": "battery_pct",
+    "heading": "heading_deg",
+    "time": "timestamp",
+    "elapsed": "elapsed_seconds",
+}
+
+
 def _parse_telemetry(path: str) -> pd.DataFrame:
     """
-    Parse telemetry JSON into a pandas DataFrame.
+    Parse telemetry file into a normalized pandas DataFrame.
 
-    Expected format:
-    {
-        "records": [
-            {
-                "timestamp": "2024-01-15T10:00:00Z",
-                "elapsed_seconds": 0,
-                "latitude": 51.5,
-                "longitude": -0.1,
-                "altitude_m": 50.0,
-                "speed_ms": 5.0,
-                "battery_pct": 100,
-                "heading_deg": 90,
-                ...
-            }
-        ]
-    }
+    Supports:
+    - JSON  — { "records": [...] } or [ {...}, ... ] or flat {}
+    - CSV   — DJI FlightRecord, ArduPilot, Autel, Skydio, or generic
+              (column aliases normalised automatically)
     """
+    suffix = Path(path).suffix.lower()
+
+    if suffix == ".csv":
+        df = _parse_telemetry_csv(path)
+    else:
+        df = _parse_telemetry_json(path)
+
+    # Normalize timestamp
+    if "timestamp" in df.columns:
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True, errors="coerce")
+
+    # Derive elapsed_seconds from timestamp if not present
+    if "elapsed_seconds" not in df.columns and "timestamp" in df.columns:
+        t0 = df["timestamp"].dropna().iloc[0] if not df["timestamp"].dropna().empty else None
+        if t0 is not None:
+            df["elapsed_seconds"] = (df["timestamp"] - t0).dt.total_seconds()
+
+    # Ensure numeric telemetry columns
+    numeric_cols = [
+        "altitude_m", "speed_ms", "battery_pct", "latitude", "longitude",
+        "heading_deg", "vertical_speed_ms", "temperature_c",
+        "pitch_deg", "roll_deg", "elapsed_seconds",
+    ]
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    sort_col = "elapsed_seconds" if "elapsed_seconds" in df.columns else df.columns[0]
+    return df.sort_values(sort_col).reset_index(drop=True)
+
+
+def _parse_telemetry_json(path: str) -> pd.DataFrame:
+    """Parse JSON telemetry — supports list, {records:[]}, {telemetry:[]}, or flat dict."""
     with open(path) as f:
         raw = json.load(f)
 
-    # Support multiple formats
     if isinstance(raw, list):
         records = raw
     elif "records" in raw:
@@ -115,24 +180,61 @@ def _parse_telemetry(path: str) -> pd.DataFrame:
     else:
         records = [raw]
 
-    df = pd.DataFrame(records)
+    return pd.DataFrame(records)
 
-    # Normalize timestamp
-    if "timestamp" in df.columns:
-        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True, errors="coerce")
 
-    # Add elapsed seconds if missing
-    if "elapsed_seconds" not in df.columns and "timestamp" in df.columns:
-        df["elapsed_seconds"] = (df["timestamp"] - df["timestamp"].iloc[0]).dt.total_seconds()
+def _parse_telemetry_csv(path: str) -> pd.DataFrame:
+    """
+    Parse CSV telemetry with automatic column alias normalization.
 
-    # Ensure numeric columns
-    numeric_cols = ["altitude_m", "speed_ms", "battery_pct", "latitude", "longitude",
-                    "heading_deg", "vertical_speed_ms", "temperature_c"]
-    for col in numeric_cols:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
+    Handles:
+    - DJI FlightRecord CSV (exported via AirData / DJI Assistant)
+    - ArduPilot / Mission Planner tlog CSV
+    - Generic drone CSV with common column names
+    - BOM (UTF-8 with BOM) encoding used by some flight controllers
+    """
+    # Try different encodings
+    for enc in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            # Skip comment/metadata lines that some tools prepend (lines starting with #)
+            df = pd.read_csv(path, encoding=enc, comment="#", low_memory=False)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        raise ValueError(f"Cannot decode CSV: {path}")
 
-    return df.sort_values("elapsed_seconds" if "elapsed_seconds" in df.columns else df.columns[0])
+    # Drop fully-empty columns
+    df = df.dropna(axis=1, how="all")
+
+    # Normalize column names via alias map
+    rename_map = {}
+    for col in df.columns:
+        col_stripped = col.strip()
+        if col_stripped in _COL_ALIASES:
+            rename_map[col] = _COL_ALIASES[col_stripped]
+        elif col_stripped.lower() in {v.lower(): v for v in _COL_ALIASES.values()}:
+            # Already a canonical name — just strip whitespace
+            rename_map[col] = col_stripped
+    df = df.rename(columns=rename_map)
+
+    # DJI specific: "CUSTOM.updateTime" → timestamp
+    if "CUSTOM.updateTime" in df.columns and "timestamp" not in df.columns:
+        df = df.rename(columns={"CUSTOM.updateTime": "timestamp"})
+
+    # If there's a generic first-column that looks like time (ms/s since epoch)
+    if "elapsed_seconds" not in df.columns and "timestamp" not in df.columns:
+        first_col = df.columns[0]
+        sample = pd.to_numeric(df[first_col].head(5), errors="coerce")
+        if not sample.isna().all():
+            # Heuristic: values < 100000 → seconds; > 100000 → milliseconds
+            if sample.max() > 100_000:
+                df["elapsed_seconds"] = pd.to_numeric(df[first_col], errors="coerce") / 1000
+            else:
+                df["elapsed_seconds"] = pd.to_numeric(df[first_col], errors="coerce")
+
+    log.info("CSV telemetry parsed", rows=len(df), columns=list(df.columns)[:10])
+    return df
 
 
 def _parse_sensor_log(path: str) -> list[dict]:
@@ -182,13 +284,111 @@ def _parse_sensor_log(path: str) -> list[dict]:
 
 def _extract_video_frames(video_path: str, session_id: str) -> list[dict]:
     """
-    Extract key frames from video using OpenCV.
-    Falls back to empty list if cv2 not available.
+    Extract key frames from video.
+    Primary: ffmpeg (subprocess) — handles all drone footage formats robustly.
+    Fallback: OpenCV — used if ffmpeg binary is not on PATH.
     """
-    frames = []
     output_dir = Path("output/frames") / session_id
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Try ffmpeg first
+    frames = _extract_frames_ffmpeg(video_path, output_dir)
+    if frames:
+        return frames
+
+    # Fallback to OpenCV
+    return _extract_frames_opencv(video_path, output_dir)
+
+
+def _extract_frames_ffmpeg(video_path: str, output_dir: Path) -> list[dict]:
+    """
+    Extract frames using ffmpeg subprocess.
+    Outputs one JPEG per FRAME_INTERVAL seconds, up to MAX_FRAMES.
+    Handles H.264/H.265, DJI SRT-embedded MP4, GoPro, and most drone formats.
+    """
+    import shutil
+    import subprocess
+
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        log.warning("ffmpeg not found; will try OpenCV")
+        return []
+
+    try:
+        # Get video duration via ffprobe
+        probe_cmd = [
+            "ffprobe", "-v", "quiet",
+            "-print_format", "json",
+            "-show_streams",
+            video_path,
+        ]
+        probe = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=15)
+        probe_data = json.loads(probe.stdout or "{}")
+
+        duration = 0.0
+        for stream in probe_data.get("streams", []):
+            if stream.get("codec_type") == "video":
+                duration = float(stream.get("duration", 0))
+                break
+
+        if duration == 0:
+            # Try format-level duration
+            fmt_cmd = [
+                "ffprobe", "-v", "quiet",
+                "-print_format", "json",
+                "-show_format",
+                video_path,
+            ]
+            fmt_result = subprocess.run(fmt_cmd, capture_output=True, text=True, timeout=15)
+            fmt_data = json.loads(fmt_result.stdout or "{}")
+            duration = float(fmt_data.get("format", {}).get("duration", 0))
+
+        if duration == 0:
+            log.warning("ffprobe could not determine video duration")
+            return []
+
+        # Calculate timestamps to extract
+        n_frames = min(MAX_FRAMES, max(1, int(duration / FRAME_INTERVAL)))
+        timestamps = [i * (duration / n_frames) for i in range(n_frames)]
+
+        frames = []
+        for idx, t in enumerate(timestamps):
+            out_path = output_dir / f"frame_{idx:04d}_{int(t):05d}s.jpg"
+            cmd = [
+                "ffmpeg", "-y",
+                "-ss", str(t),
+                "-i", video_path,
+                "-frames:v", "1",
+                "-q:v", "3",          # JPEG quality 2–5 is good
+                "-vf", "scale=1280:-2",  # Resize to max 1280px wide
+                str(out_path),
+            ]
+            result = subprocess.run(cmd, capture_output=True, timeout=30)
+            if result.returncode == 0 and out_path.exists():
+                frames.append({
+                    "frame_index": idx,
+                    "elapsed_seconds": t,
+                    "timestamp": _seconds_to_hms(t),
+                    "path": str(out_path),
+                    "description": None,
+                    "is_interesting": False,
+                })
+            else:
+                log.warning("ffmpeg frame extraction failed", timestamp=t, stderr=result.stderr.decode()[:200])
+
+        log.info("Video frames extracted via ffmpeg", count=len(frames), duration=duration)
+        return frames
+
+    except subprocess.TimeoutExpired:
+        log.warning("ffmpeg timed out during frame extraction")
+        return []
+    except Exception as e:
+        log.warning("ffmpeg frame extraction error", error=str(e))
+        return []
+
+
+def _extract_frames_opencv(video_path: str, output_dir: Path) -> list[dict]:
+    """Fallback: extract frames using OpenCV."""
+    frames = []
     try:
         import cv2
 
@@ -217,6 +417,7 @@ def _extract_video_frames(video_path: str, session_id: str) -> list[dict]:
                 "timestamp": _seconds_to_hms(timestamp_sec),
                 "path": str(out_path),
                 "description": None,
+                "is_interesting": False,
             })
 
             frame_idx += frame_step
@@ -226,9 +427,9 @@ def _extract_video_frames(video_path: str, session_id: str) -> list[dict]:
         log.info("Video frames extracted via OpenCV", count=len(frames), duration=duration)
 
     except ImportError:
-        log.warning("OpenCV not available; skipping video frame extraction")
+        log.warning("OpenCV not available — no video frames extracted")
     except Exception as e:
-        log.warning("Video frame extraction failed", error=str(e))
+        log.warning("OpenCV frame extraction failed", error=str(e))
 
     return frames
 

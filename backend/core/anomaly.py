@@ -7,7 +7,7 @@ Two layers:
 """
 
 import os
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -33,7 +33,7 @@ ZSCORE_CHANNELS = ["altitude_m", "speed_ms", "battery_pct", "vertical_speed_ms"]
 
 
 def detect_anomalies(
-    telemetry_df: pd.DataFrame | None,
+    telemetry_df: Optional[pd.DataFrame],
     events: list[dict],
 ) -> list[AnomalyEvent]:
     """
@@ -61,19 +61,39 @@ def detect_anomalies(
     return anomalies
 
 
+# Grace period (seconds) at start/end of mission to ignore takeoff/landing transients
+_GRACE_SECONDS = 90
+
+
 def _zscore_detection(df: pd.DataFrame) -> list[AnomalyEvent]:
     """
     Detect anomalies using Z-score on telemetry channels.
     Flags readings more than Z_THRESHOLD standard deviations from the mean.
+    Skips the first/last _GRACE_SECONDS to avoid flagging takeoff/landing phases.
     """
     anomalies = []
     has_elapsed = "elapsed_seconds" in df.columns
 
+    # Exclude takeoff and landing transients from Z-score analysis
+    if has_elapsed and len(df) > 0:
+        t_min = df["elapsed_seconds"].min()
+        t_max = df["elapsed_seconds"].max()
+        cruise_mask = (
+            (df["elapsed_seconds"] >= t_min + _GRACE_SECONDS) &
+            (df["elapsed_seconds"] <= t_max - _GRACE_SECONDS)
+        )
+        analysis_df = df[cruise_mask]
+    else:
+        analysis_df = df
+
+    if len(analysis_df) < 10:
+        analysis_df = df  # Not enough data after trimming; use full set
+
     for channel in ZSCORE_CHANNELS:
-        if channel not in df.columns:
+        if channel not in analysis_df.columns:
             continue
 
-        series = df[channel].dropna()
+        series = analysis_df[channel].dropna()
         if len(series) < 10:  # Not enough data
             continue
 
@@ -83,7 +103,7 @@ def _zscore_detection(df: pd.DataFrame) -> list[AnomalyEvent]:
             continue
 
         z_scores = np.abs((series - mean) / std)
-        flagged = df.loc[z_scores[z_scores > Z_THRESHOLD].index]
+        flagged = analysis_df.loc[z_scores[z_scores > Z_THRESHOLD].index]
 
         # Group nearby anomalies (within 60s of each other)
         last_flagged_t = -999
@@ -111,14 +131,26 @@ def _zscore_detection(df: pd.DataFrame) -> list[AnomalyEvent]:
 
 
 def _rule_based_detection(df: pd.DataFrame) -> list[AnomalyEvent]:
-    """Apply rule-based threshold checks to telemetry."""
+    """Apply rule-based threshold checks to telemetry (cruise phase only)."""
     anomalies = []
     has_elapsed = "elapsed_seconds" in df.columns
     triggered_rules: set[str] = set()
 
+    # Restrict to cruise phase to avoid takeoff/landing false positives
+    if has_elapsed and len(df) > 0:
+        t_min = df["elapsed_seconds"].min()
+        t_max = df["elapsed_seconds"].max()
+        cruise_mask = (
+            (df["elapsed_seconds"] >= t_min + _GRACE_SECONDS) &
+            (df["elapsed_seconds"] <= t_max - _GRACE_SECONDS)
+        )
+        check_df = df[cruise_mask] if cruise_mask.sum() > 5 else df
+    else:
+        check_df = df
+
     for rule_name, rule in RULES.items():
         channel = rule["channel"]
-        if channel not in df.columns:
+        if channel not in check_df.columns:
             continue
 
         op = rule["operator"]
@@ -126,13 +158,13 @@ def _rule_based_detection(df: pd.DataFrame) -> list[AnomalyEvent]:
         severity = rule["severity"]
 
         if op == "lt":
-            mask = df[channel] < threshold
+            mask = check_df[channel] < threshold
         elif op == "gt":
-            mask = df[channel] > threshold
+            mask = check_df[channel] > threshold
         else:
             continue
 
-        flagged = df[mask]
+        flagged = check_df[mask]
         if flagged.empty:
             continue
 

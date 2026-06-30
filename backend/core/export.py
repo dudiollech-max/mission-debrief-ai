@@ -280,7 +280,7 @@ def _generate_pdf(result: DebriefResult, output_path: str):
                 [Paragraph(f"⏱ {dp.timestamp}", mono_style)],
                 [Paragraph(f"Situation: {dp.situation}", body_style)],
                 [Paragraph(f"Action taken: {dp.action_taken}", style("DPAction",
-                    parent=styles["Normal"], fontSize=9, textColor=rgb(ELECTRIC_BLUE),
+                    fontSize=9, textColor=rgb(ELECTRIC_BLUE),
                     fontName="Helvetica-Oblique"))],
             ]
             dp_table = Table(dp_data, colWidths=[18 * cm])

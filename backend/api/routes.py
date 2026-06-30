@@ -12,6 +12,8 @@ from typing import AsyncGenerator
 
 import aiofiles
 import structlog
+from __future__ import annotations
+from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
@@ -39,9 +41,9 @@ async def ingest(
     background_tasks: BackgroundTasks,
     mission_name: str = Form(default="Mission"),
     platform: str = Form(default="Unknown UAV"),
-    video: UploadFile | None = File(default=None),
-    telemetry: UploadFile | None = File(default=None),
-    sensor_log: UploadFile | None = File(default=None),
+    video: Optional[UploadFile] = File(default=None),
+    telemetry: Optional[UploadFile] = File(default=None),
+    sensor_log: Optional[UploadFile] = File(default=None),
 ):
     """
     Ingest multi-stream mission data.
