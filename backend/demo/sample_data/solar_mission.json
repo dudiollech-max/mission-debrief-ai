@@ -1,0 +1,169 @@
+{
+  "mission": {
+    "name": "Solar Farm Inspection — Block A",
+    "platform": "SolarDrone MK2",
+    "date": "2024-06-15",
+    "start_time": "09:00:00 UTC",
+    "duration_seconds": 2700,
+    "pilot": "AutoPilot v3.2",
+    "location": {
+      "farm_name": "Sunridge Solar Park",
+      "block": "A",
+      "lat_center": 51.5074,
+      "lon_center": -0.1278,
+      "altitude_agl_m": 50,
+      "panel_count": 200,
+      "rows": 10
+    }
+  },
+  "telemetry_summary": {
+    "max_altitude_m": 50.8,
+    "avg_speed_ms": 5.2,
+    "max_speed_ms": 8.4,
+    "battery_start_pct": 100,
+    "battery_end_pct": 30,
+    "distance_traveled_m": 2410,
+    "gps_satellites_avg": 12,
+    "signal_strength_avg_pct": 88
+  },
+  "events": [
+    {
+      "elapsed_seconds": 0,
+      "timestamp": "2024-06-15T09:00:00Z",
+      "type": "mission_start",
+      "severity": "info",
+      "message": "SolarDrone MK2 powered on — GPS lock acquired (12 satellites)",
+      "data": {"satellites": 12, "home_lat": 51.5074, "home_lon": -0.1278}
+    },
+    {
+      "elapsed_seconds": 45,
+      "timestamp": "2024-06-15T09:00:45Z",
+      "type": "takeoff",
+      "severity": "info",
+      "message": "Takeoff initiated — weather: clear, wind 3 km/h NE",
+      "data": {"wind_kmh": 3, "direction": "NE", "visibility": "excellent"}
+    },
+    {
+      "elapsed_seconds": 90,
+      "timestamp": "2024-06-15T09:01:30Z",
+      "type": "altitude_hold",
+      "severity": "info",
+      "message": "Altitude hold engaged at 50m AGL"
+    },
+    {
+      "elapsed_seconds": 300,
+      "timestamp": "2024-06-15T09:05:00Z",
+      "type": "panel_scan_start",
+      "severity": "info",
+      "message": "Beginning systematic panel scan — Block A, 200 panels, 10 rows",
+      "data": {"block": "A", "panel_count": 200, "rows": 10, "scan_speed_ms": 5}
+    },
+    {
+      "elapsed_seconds": 600,
+      "timestamp": "2024-06-15T09:10:00Z",
+      "type": "panel_scan_row",
+      "severity": "info",
+      "message": "Completed scan rows 1-2 (40 panels) — all nominal",
+      "data": {"rows_completed": 2, "panels_scanned": 40, "anomalies": 0}
+    },
+    {
+      "elapsed_seconds": 900,
+      "timestamp": "2024-06-15T09:15:00Z",
+      "type": "panel_scan_row",
+      "severity": "info",
+      "message": "Completed scan rows 3-4 (80 panels) — minor soiling on panel 23",
+      "data": {"rows_completed": 4, "panels_scanned": 80, "anomalies": 0}
+    },
+    {
+      "elapsed_seconds": 1200,
+      "timestamp": "2024-06-15T09:20:00Z",
+      "type": "panel_scan_row",
+      "severity": "info",
+      "message": "Completed scan rows 5-6 (120 panels) — all nominal",
+      "data": {"rows_completed": 6, "panels_scanned": 120, "anomalies": 0}
+    },
+    {
+      "elapsed_seconds": 1710,
+      "timestamp": "2024-06-15T09:28:30Z",
+      "type": "thermal_anomaly_detected",
+      "severity": "critical",
+      "message": "THERMAL ANOMALY: Panel #47 — temperature 340°C (threshold: 80°C). Possible hotspot, cell failure, or bypass diode fault.",
+      "data": {
+        "panel_id": 47,
+        "temp_celsius": 340,
+        "threshold": 80,
+        "position": {"row": 7, "column": 7},
+        "possible_cause": "bypass_diode_fault",
+        "action": "Operator notified; location logged for ground team"
+      }
+    },
+    {
+      "elapsed_seconds": 1740,
+      "timestamp": "2024-06-15T09:29:00Z",
+      "type": "anomaly_flagged",
+      "severity": "warning",
+      "message": "Panel #47 flagged — close-up pass completed, coordinates logged for ground team",
+      "data": {"panel_id": 47, "action": "Ground inspection ordered"}
+    },
+    {
+      "elapsed_seconds": 2100,
+      "timestamp": "2024-06-15T09:35:00Z",
+      "type": "panel_scan_complete",
+      "severity": "info",
+      "message": "Block A scan complete — 200/200 panels surveyed, 1 critical anomaly",
+      "data": {"panels_scanned": 200, "anomalies": 1, "anomaly_ids": [47]}
+    },
+    {
+      "elapsed_seconds": 2302,
+      "timestamp": "2024-06-15T09:38:22Z",
+      "type": "battery_warning",
+      "severity": "warning",
+      "message": "Battery at 30% — Return-to-Home threshold reached",
+      "data": {"battery_pct": 30, "threshold": 30, "action": "Operator alerted"}
+    },
+    {
+      "elapsed_seconds": 2465,
+      "timestamp": "2024-06-15T09:41:05Z",
+      "type": "rth_initiated",
+      "severity": "warning",
+      "message": "Return-to-Home initiated — battery 26%, distance to home 420m",
+      "data": {"battery_pct": 26, "distance_to_home_m": 420, "action": "RTH engaged by operator"}
+    },
+    {
+      "elapsed_seconds": 2695,
+      "timestamp": "2024-06-15T09:44:55Z",
+      "type": "landed",
+      "severity": "info",
+      "message": "SolarDrone MK2 landed successfully — mission complete",
+      "data": {
+        "panels_scanned": 200,
+        "anomalies_detected": 1,
+        "battery_remaining_pct": 30,
+        "mission_status": "complete"
+      }
+    }
+  ],
+  "anomalies": [
+    {
+      "id": "anom-001",
+      "panel_id": 47,
+      "type": "thermal_hotspot",
+      "severity": "critical",
+      "timestamp": "2024-06-15T09:28:30Z",
+      "elapsed_seconds": 1710,
+      "description": "Severe thermal hotspot detected on Panel #47. Temperature 340°C vs baseline 25°C.",
+      "possible_cause": "Bypass diode failure",
+      "coordinates": {"lat": 51.5067, "lon": -0.1261},
+      "action_required": "Immediate ground inspection and panel replacement"
+    }
+  ],
+  "mission_stats": {
+    "panels_inspected": 200,
+    "panels_nominal": 199,
+    "panels_anomalous": 1,
+    "critical_anomalies": 1,
+    "warning_anomalies": 2,
+    "coverage_percent": 100,
+    "mission_success": true
+  }
+}

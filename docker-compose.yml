@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  mission-debrief-ai:
+    build: .
+    container_name: mission-debrief-ai
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - USE_LOCAL_LLM=${USE_LOCAL_LLM:-false}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MAX_FRAMES=${MAX_FRAMES:-20}
+      - FRAME_INTERVAL=${FRAME_INTERVAL:-15}
+      - ANOMALY_Z_THRESHOLD=${ANOMALY_Z_THRESHOLD:-2.5}
+    volumes:
+      - uploads:/app/uploads
+      - output:/app/output
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Local Ollama for offline LLM
+  # Uncomment to run with local models (requires USE_LOCAL_LLM=true)
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_models:/root/.ollama
+  #   restart: unless-stopped
+
+volumes:
+  uploads:
+  output:
+  # ollama_models:

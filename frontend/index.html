@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mission Debrief AI — VisionWave</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛸</text></svg>">
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-brand">
+      <span class="header-icon">🛸</span>
+      <div>
+        <div class="header-title">Mission Debrief AI</div>
+        <div class="header-subtitle">VisionWave Edge Intelligence · Auto-Debrief in Under 60s</div>
+      </div>
+    </div>
+    <div class="header-badge">
+      <span class="status-dot"></span>
+      API Online
+    </div>
+  </header>
+
+  <!-- ── Main ────────────────────────────────────────────────────────────── -->
+  <main class="container">
+
+    <!-- ── Top Grid: Demo + Upload ──────────────────────────────────────── -->
+    <div class="grid-2">
+
+      <!-- ── SolarDrone Demo ─────────────────────────────────────────────── -->
+      <div class="demo-card">
+        <div class="card-title">⚡ Live Demo</div>
+        <div class="demo-title">SolarDrone Inspection</div>
+        <div class="demo-desc">
+          Run the built-in 45-minute solar panel inspection demo.
+          No upload needed — generates realistic mission data and produces a
+          full structured debrief with anomaly detection.
+        </div>
+        <div class="demo-tags">
+          <span class="tag tag-blue">45-min flight</span>
+          <span class="tag tag-red">Critical hotspot</span>
+          <span class="tag tag-amber">Panel #47 fault</span>
+          <span class="tag tag-green">200 panels scanned</span>
+          <span class="tag tag-blue">PDF export</span>
+        </div>
+        <button class="btn btn-primary btn-lg btn-full" id="demo-btn" onclick="runDemo()">
+          <span>▶</span> Run SolarDrone Demo
+        </button>
+
+        <!-- Demo progress -->
+        <div class="progress-section mt-16" id="demo-progress">
+          <div class="progress-header">
+            <div>
+              <div class="progress-label" id="demo-status-msg">Initializing...</div>
+              <div class="timer-display">
+                <span id="demo-timer">0.0</span>
+                <span class="timer-label">seconds</span>
+              </div>
+            </div>
+            <div class="progress-pct" id="demo-pct">0%</div>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="demo-bar"></div>
+          </div>
+          <div class="progress-message" id="demo-msg"></div>
+        </div>
+
+        <div class="error-msg" id="demo-error"></div>
+      </div>
+
+      <!-- ── Upload Mission Data ─────────────────────────────────────────── -->
+      <div class="card">
+        <div class="card-title">📤 Upload Mission Data</div>
+
+        <div class="form-group">
+          <label class="form-label">Mission Name</label>
+          <input class="form-input" type="text" id="upload-mission-name" placeholder="e.g. Solar Farm Inspection" value="Mission" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Platform</label>
+          <input class="form-input" type="text" id="upload-platform" placeholder="e.g. SolarDrone MK2" value="UAV" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Video (optional)</label>
+          <div class="file-drop" id="video-drop">
+            <input type="file" accept="video/*" id="video-file" onchange="handleFileDrop(this,'video-drop','🎥 '+this.files[0].name)" />
+            <div class="file-drop-icon">🎥</div>
+            <div class="file-drop-label">Drop video file or click to browse</div>
+            <div class="file-drop-hint">MP4, MOV — optional</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Telemetry JSON (optional)</label>
+          <div class="file-drop" id="telem-drop">
+            <input type="file" accept=".json" id="telem-file" onchange="handleFileDrop(this,'telem-drop','📊 '+this.files[0].name)" />
+            <div class="file-drop-icon">📊</div>
+            <div class="file-drop-label">Drop telemetry JSON or click</div>
+            <div class="file-drop-hint">GPS, altitude, battery, speed</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sensor/Event Log JSON (optional)</label>
+          <div class="file-drop" id="log-drop">
+            <input type="file" accept=".json" id="log-file" onchange="handleFileDrop(this,'log-drop','📋 '+this.files[0].name)" />
+            <div class="file-drop-icon">📋</div>
+            <div class="file-drop-label">Drop event log or click</div>
+            <div class="file-drop-hint">Mission events, sensor alerts</div>
+          </div>
+        </div>
+
+        <button class="btn btn-outline btn-full mt-8" id="upload-btn" onclick="runUpload()">
+          <span>🚀</span> Ingest &amp; Generate Debrief
+        </button>
+
+        <!-- Upload progress -->
+        <div class="progress-section mt-12" id="upload-progress">
+          <div class="progress-header">
+            <div class="progress-label" id="upload-status-msg">Processing...</div>
+            <div class="progress-pct" id="upload-pct">0%</div>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="upload-bar"></div>
+          </div>
+          <div class="progress-message" id="upload-msg"></div>
+        </div>
+
+        <div class="error-msg" id="upload-error"></div>
+      </div>
+    </div>
+
+    <!-- ── Debrief Result ───────────────────────────────────────────────── -->
+    <div class="result-section" id="result-section">
+
+      <!-- Result header -->
+      <div class="result-header">
+        <div class="result-meta">
+          <div class="meta-item">
+            <span class="meta-label">Mission</span>
+            <span class="meta-value" id="res-mission">—</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Platform</span>
+            <span class="meta-value blue" id="res-platform">—</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Duration</span>
+            <span class="meta-value mono" id="res-duration">—</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Anomalies</span>
+            <span class="meta-value" id="res-anomalies">—</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Processing</span>
+            <span class="meta-value mono" id="res-proc-time">—</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">AI Mode</span>
+            <span class="meta-value" id="res-ai-mode">—</span>
+          </div>
+        </div>
+        <div class="rating-badge" id="res-rating">UNKNOWN</div>
+      </div>
+
+      <!-- Summary -->
+      <div class="result-summary" id="res-summary"></div>
+
+      <!-- Assessment -->
+      <div class="section-panel">
+        <button class="section-toggle open" onclick="toggleSection(this)">
+          <span class="section-toggle-left">
+            <span>📋</span>
+            Assessment
+            <span class="section-count count-blue" id="cnt-assessment">—</span>
+          </span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body open" id="body-assessment">
+          <div class="assessment-grid">
+            <div class="assessment-col col-good">
+              <div class="assessment-col-title">✅ Went Well</div>
+              <div id="assess-good"></div>
+            </div>
+            <div class="assessment-col col-watch">
+              <div class="assessment-col-title">⚠ Watch Points</div>
+              <div id="assess-watch"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anomalies -->
+      <div class="section-panel">
+        <button class="section-toggle open" onclick="toggleSection(this)">
+          <span class="section-toggle-left">
+            <span>🚨</span>
+            Anomalies Detected
+            <span class="section-count count-red" id="cnt-anomalies">0</span>
+          </span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body open" id="body-anomalies">
+          <div class="anomaly-list" id="anomaly-list"></div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="section-panel">
+        <button class="section-toggle" onclick="toggleSection(this)">
+          <span class="section-toggle-left">
+            <span>⏱</span>
+            Event Timeline
+            <span class="section-count count-blue" id="cnt-timeline">0</span>
+          </span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body" id="body-timeline">
+          <div class="timeline" id="timeline-list"></div>
+        </div>
+      </div>
+
+      <!-- Decision Points -->
+      <div class="section-panel">
+        <button class="section-toggle" onclick="toggleSection(this)">
+          <span class="section-toggle-left">
+            <span>🧠</span>
+            Decision Points
+            <span class="section-count count-amber" id="cnt-decisions">0</span>
+          </span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body" id="body-decisions">
+          <div class="decision-list" id="decision-list"></div>
+        </div>
+      </div>
+
+      <!-- Interesting Moments -->
+      <div class="section-panel">
+        <button class="section-toggle" onclick="toggleSection(this)">
+          <span class="section-toggle-left">
+            <span>👁</span>
+            Interesting Moments
+            <span class="section-count count-amber" id="cnt-moments">0</span>
+          </span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body" id="body-moments">
+          <div class="moments-list" id="moments-list"></div>
+        </div>
+      </div>
+
+      <!-- Download bar -->
+      <div class="download-bar">
+        <div class="download-info">
+          Debrief complete · Session: <span id="dl-session-id">—</span>
+        </div>
+        <div class="flex flex-gap">
+          <button class="btn btn-outline btn-sm" onclick="downloadJson()">⬇ JSON</button>
+          <button class="btn btn-success btn-sm" id="pdf-btn" onclick="downloadPdf()">⬇ PDF Report</button>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ── Toast ─────────────────────────────────────────────────────────── -->
+  <div class="toast" id="toast"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
