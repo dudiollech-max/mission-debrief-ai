@@ -1,279 +1,395 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mission Debrief AI — VisionWave</title>
-  <link rel="stylesheet" href="/static/style.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛸</text></svg>">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#05070b" />
+        <meta name="description" content="Visionetics Mission Debrief — AI-powered drone mission analysis in under 60 seconds." />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/style.css" />
+        <title>Visionetics — Mission Debrief</title>
+        <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
+        <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
+    <script defer src="/static/js/bundle.js"></script><script>
+if(window.self!==window.top){
+  var s=document.createElement("script");s.src="/visual-edit-overlay.js";document.head.appendChild(s);
+  window.tailwind=window.tailwind||{};tailwind.config={corePlugins:{preflight:false}};var t=document.createElement("script");t.src="https://cdn.tailwindcss.com";document.head.appendChild(t);
+}
+</script>
 </head>
-<body>
+    <body>
+        <noscript>You need to enable JavaScript to run this app.</noscript>
+        <div id="root" aria-hidden="true"></div>
 
-  <!-- ── Header ──────────────────────────────────────────────────────────── -->
-  <header class="header">
-    <div class="header-brand">
-      <span class="header-icon">🛸</span>
-      <div>
-        <div class="header-title">Mission Debrief AI</div>
-        <div class="header-subtitle">VisionWave Edge Intelligence · Auto-Debrief in Under 60s</div>
-      </div>
-    </div>
-    <div class="header-badge">
-      <span class="status-dot"></span>
-      API Online
-    </div>
-  </header>
+        <!-- Grid backdrop + motion bg -->
+        <div class="grid-backdrop" aria-hidden="true"></div>
+        <canvas class="motion-bg" id="motion-bg" aria-hidden="true"></canvas>
+        <div class="noise" aria-hidden="true"></div>
 
-  <!-- ── Main ────────────────────────────────────────────────────────────── -->
-  <main class="container">
+        <!-- Toast container -->
+        <div
+            id="toast"
+            class="toast"
+            role="alert"
+            aria-live="assertive"
+            data-testid="error-toast"
+        ></div>
 
-    <!-- ── Top Grid: Demo + Upload ──────────────────────────────────────── -->
-    <div class="grid-2">
+        <!-- HEADER -->
+        <header class="site-header" role="banner">
+            <div class="container header-inner">
+                <a class="brand" href="#" data-testid="brand-link" aria-label="Visionetics home">
+                    <span class="brand-name">
+                        <span class="brand-primary">VISION</span><span class="brand-secondary">ETICS</span>
+                    </span>
+                </a>
 
-      <!-- ── SolarDrone Demo ─────────────────────────────────────────────── -->
-      <div class="demo-card">
-        <div class="card-title">⚡ Live Demo</div>
-        <div class="demo-title">SolarDrone Inspection</div>
-        <div class="demo-desc">
-          Run the built-in 45-minute solar panel inspection demo.
-          No upload needed — generates realistic mission data and produces a
-          full structured debrief with anomaly detection.
-        </div>
-        <div class="demo-tags">
-          <span class="tag tag-blue">45-min flight</span>
-          <span class="tag tag-red">Critical hotspot</span>
-          <span class="tag tag-amber">Panel #47 fault</span>
-          <span class="tag tag-green">200 panels scanned</span>
-          <span class="tag tag-blue">PDF export</span>
-        </div>
-        <button class="btn btn-primary btn-lg btn-full" id="demo-btn" onclick="runDemo()">
-          <span>▶</span> Run SolarDrone Demo
-        </button>
+                <nav class="header-nav" aria-label="Primary">
+                    <a href="#systems" data-testid="nav-systems">Systems</a>
+                    <a href="#missions" data-testid="nav-missions">Missions</a>
+                    <a href="#docs" data-testid="nav-docs">Docs</a>
+                </nav>
 
-        <!-- Demo progress -->
-        <div class="progress-section mt-16" id="demo-progress">
-          <div class="progress-header">
-            <div>
-              <div class="progress-label" id="demo-status-msg">Initializing...</div>
-              <div class="timer-display">
-                <span id="demo-timer">0.0</span>
-                <span class="timer-label">seconds</span>
-              </div>
+                <div class="header-status" data-testid="header-status">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span class="status-text">SYSTEMS ONLINE</span>
+                </div>
             </div>
-            <div class="progress-pct" id="demo-pct">0%</div>
-          </div>
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" id="demo-bar"></div>
-          </div>
-          <div class="progress-message" id="demo-msg"></div>
-        </div>
+        </header>
 
-        <div class="error-msg" id="demo-error"></div>
-      </div>
+        <!-- MAIN -->
+        <main id="main" class="container" role="main">
+            <!-- HERO -->
+            <section class="hero" aria-labelledby="hero-title">
+                <div class="hero-kicker" data-testid="hero-kicker">
+                    <span class="kicker-dot" aria-hidden="true"></span>
+                    <span>MISSION DEBRIEF · v2.4 · EDGE INTELLIGENCE</span>
+                </div>
+                <h1 id="hero-title" class="hero-title" data-testid="hero-title">
+                    AI debrief in under
+                    <span class="hero-accent">60&nbsp;seconds.</span>
+                </h1>
+                <p class="hero-sub" data-testid="hero-sub">
+                    Upload drone footage and telemetry — get a mission-grade debrief
+                    with anomaly detection, threat assessment and flight metrics.
+                    Run on the edge. Ship to command in real time.
+                </p>
 
-      <!-- ── Upload Mission Data ─────────────────────────────────────────── -->
-      <div class="card">
-        <div class="card-title">📤 Upload Mission Data</div>
+                <div class="hero-meta" role="list">
+                    <div class="meta-item" role="listitem">
+                        <span class="meta-value">&lt; 60s</span>
+                        <span class="meta-label">Debrief latency</span>
+                    </div>
+                    <div class="meta-item" role="listitem">
+                        <span class="meta-value">96.4%</span>
+                        <span class="meta-label">Detection accuracy</span>
+                    </div>
+                    <div class="meta-item" role="listitem">
+                        <span class="meta-value">14 TOPS</span>
+                        <span class="meta-label">Edge compute</span>
+                    </div>
+                    <div class="meta-item" role="listitem">
+                        <span class="meta-value">4K · 60fps</span>
+                        <span class="meta-label">Stream ingest</span>
+                    </div>
+                </div>
+            </section>
 
-        <div class="form-group">
-          <label class="form-label">Mission Name</label>
-          <input class="form-input" type="text" id="upload-mission-name" placeholder="e.g. Solar Farm Inspection" value="Mission" />
-        </div>
+            <!-- INTAKE GRID -->
+            <section class="intake" id="systems" aria-labelledby="intake-title">
+                <div class="section-head">
+                    <h2 id="intake-title" class="section-title">
+                        <span class="section-index">01</span>
+                        <span>Start a debrief</span>
+                    </h2>
+                    <p class="section-desc">
+                        Simulate a mission with sample data, or upload real footage
+                        and telemetry from the field.
+                    </p>
+                </div>
 
-        <div class="form-group">
-          <label class="form-label">Platform</label>
-          <input class="form-input" type="text" id="upload-platform" placeholder="e.g. SolarDrone MK2" value="UAV" />
-        </div>
+                <div class="intake-grid">
+                    <!-- DEMO CARD -->
+                    <article class="card demo-card" data-testid="demo-card" aria-labelledby="demo-title">
+                        <header class="card-head">
+                            <span class="card-tag">DEMO</span>
+                            <span class="card-eyebrow">No upload required</span>
+                        </header>
+                        <h3 id="demo-title" class="card-title">Quick Demo Debrief</h3>
+                        <p class="card-desc">
+                            Run a pre-recorded reconnaissance mission through the
+                            full pipeline. Ingest → vision → anomaly → threat →
+                            debrief. About 12 seconds.
+                        </p>
 
-        <div class="form-group">
-          <label class="form-label">Video (optional)</label>
-          <div class="file-drop" id="video-drop">
-            <input type="file" accept="video/*" id="video-file" onchange="handleFileDrop(this,'video-drop','🎥 '+this.files[0].name)" />
-            <div class="file-drop-icon">🎥</div>
-            <div class="file-drop-label">Drop video file or click to browse</div>
-            <div class="file-drop-hint">MP4, MOV — optional</div>
-          </div>
-        </div>
+                        <ul class="card-list" aria-label="Demo highlights">
+                            <li><span class="tick" aria-hidden="true">▸</span>Coastal perimeter sweep · 4:32 flight</li>
+                            <li><span class="tick" aria-hidden="true">▸</span>47 detections · 3 flagged anomalies</li>
+                            <li><span class="tick" aria-hidden="true">▸</span>Full debrief PDF + JSON output</li>
+                        </ul>
 
-        <div class="form-group">
-          <label class="form-label">Telemetry JSON (optional)</label>
-          <div class="file-drop" id="telem-drop">
-            <input type="file" accept=".json" id="telem-file" onchange="handleFileDrop(this,'telem-drop','📊 '+this.files[0].name)" />
-            <div class="file-drop-icon">📊</div>
-            <div class="file-drop-label">Drop telemetry JSON or click</div>
-            <div class="file-drop-hint">GPS, altitude, battery, speed</div>
-          </div>
-        </div>
+                        <button
+                            type="button"
+                            class="btn btn-primary card-cta"
+                            id="demo-btn"
+                            data-testid="start-demo-btn"
+                        >
+                            <span class="btn-label">Start demo debrief</span>
+                            <span class="btn-arrow" aria-hidden="true">→</span>
+                        </button>
+                    </article>
 
-        <div class="form-group">
-          <label class="form-label">Sensor/Event Log JSON (optional)</label>
-          <div class="file-drop" id="log-drop">
-            <input type="file" accept=".json" id="log-file" onchange="handleFileDrop(this,'log-drop','📋 '+this.files[0].name)" />
-            <div class="file-drop-icon">📋</div>
-            <div class="file-drop-label">Drop event log or click</div>
-            <div class="file-drop-hint">Mission events, sensor alerts</div>
-          </div>
-        </div>
+                    <!-- UPLOAD CARD -->
+                    <article class="card upload-card" data-testid="upload-card" aria-labelledby="upload-title">
+                        <header class="card-head">
+                            <span class="card-tag card-tag-alt">LIVE</span>
+                            <span class="card-eyebrow">Video + telemetry</span>
+                        </header>
+                        <h3 id="upload-title" class="card-title">Upload Mission</h3>
+                        <p class="card-desc">
+                            Drop your drone footage and telemetry log. We'll
+                            reconstruct the flight, detect objects, and flag
+                            anomalies.
+                        </p>
 
-        <button class="btn btn-outline btn-full mt-8" id="upload-btn" onclick="runUpload()">
-          <span>🚀</span> Ingest &amp; Generate Debrief
-        </button>
+                        <form id="upload-form" class="upload-form" novalidate>
+                            <label
+                                class="dropzone"
+                                id="dz-video"
+                                data-testid="dropzone-video"
+                                tabindex="0"
+                                aria-label="Drop video file or press enter to browse"
+                            >
+                                <input
+                                    type="file"
+                                    id="video-input"
+                                    name="video"
+                                    accept="video/*"
+                                    data-testid="video-input"
+                                    hidden
+                                />
+                                <span class="dz-icon" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>
+                                </span>
+                                <div class="dz-body">
+                                    <span class="dz-title">Video footage</span>
+                                    <span class="dz-hint" id="dz-video-hint">Drag &amp; drop or click to browse · .mp4 .mov · up to 2GB</span>
+                                </div>
+                            </label>
 
-        <!-- Upload progress -->
-        <div class="progress-section mt-12" id="upload-progress">
-          <div class="progress-header">
-            <div class="progress-label" id="upload-status-msg">Processing...</div>
-            <div class="progress-pct" id="upload-pct">0%</div>
-          </div>
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" id="upload-bar"></div>
-          </div>
-          <div class="progress-message" id="upload-msg"></div>
-        </div>
+                            <label
+                                class="dropzone"
+                                id="dz-telemetry"
+                                data-testid="dropzone-telemetry"
+                                tabindex="0"
+                                aria-label="Drop telemetry file or press enter to browse"
+                            >
+                                <input
+                                    type="file"
+                                    id="telemetry-input"
+                                    name="telemetry"
+                                    accept=".csv,.json,.log,.txt"
+                                    data-testid="telemetry-input"
+                                    hidden
+                                />
+                                <span class="dz-icon" aria-hidden="true">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                                </span>
+                                <div class="dz-body">
+                                    <span class="dz-title">Telemetry log</span>
+                                    <span class="dz-hint" id="dz-telemetry-hint">Drag &amp; drop or click to browse · .csv .json .log</span>
+                                </div>
+                            </label>
 
-        <div class="error-msg" id="upload-error"></div>
-      </div>
-    </div>
+                            <button
+                                type="submit"
+                                class="btn btn-primary card-cta"
+                                id="upload-btn"
+                                data-testid="upload-btn"
+                                disabled
+                            >
+                                <span class="btn-label">Run debrief</span>
+                                <span class="btn-arrow" aria-hidden="true">→</span>
+                            </button>
+                        </form>
+                    </article>
+                </div>
+            </section>
 
-    <!-- ── Debrief Result ───────────────────────────────────────────────── -->
-    <div class="result-section" id="result-section">
+            <!-- PROGRESS SECTION -->
+            <section
+                class="progress-section"
+                id="progress-section"
+                aria-labelledby="progress-title"
+                aria-live="polite"
+                hidden
+            >
+                <div class="section-head">
+                    <h2 id="progress-title" class="section-title">
+                        <span class="section-index">02</span>
+                        <span>Processing mission</span>
+                    </h2>
+                    <p class="section-desc">
+                        Streaming through the debrief pipeline. Do not close this
+                        window.
+                    </p>
+                </div>
 
-      <!-- Result header -->
-      <div class="result-header">
-        <div class="result-meta">
-          <div class="meta-item">
-            <span class="meta-label">Mission</span>
-            <span class="meta-value" id="res-mission">—</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Platform</span>
-            <span class="meta-value blue" id="res-platform">—</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Duration</span>
-            <span class="meta-value mono" id="res-duration">—</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Anomalies</span>
-            <span class="meta-value" id="res-anomalies">—</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Processing</span>
-            <span class="meta-value mono" id="res-proc-time">—</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">AI Mode</span>
-            <span class="meta-value" id="res-ai-mode">—</span>
-          </div>
-        </div>
-        <div class="rating-badge" id="res-rating">UNKNOWN</div>
-      </div>
+                <div class="progress-card" data-testid="progress-card">
+                    <div class="progress-header">
+                        <div class="progress-session">
+                            <span class="progress-session-label">SESSION</span>
+                            <span
+                                class="progress-session-id"
+                                id="session-id"
+                                data-testid="session-id"
+                            >—</span>
+                        </div>
+                        <div class="progress-timer" data-testid="progress-timer">
+                            <span class="timer-label">ELAPSED</span>
+                            <span class="timer-value" id="timer-value">00:00</span>
+                            <span class="timer-cap">/ 60s</span>
+                        </div>
+                    </div>
 
-      <!-- Summary -->
-      <div class="result-summary" id="res-summary"></div>
+                    <div class="progress-bar-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar-wrap">
+                        <div class="progress-bar" id="progress-bar" data-testid="progress-bar"></div>
+                        <div class="progress-percent" id="progress-percent" data-testid="progress-percent">0%</div>
+                    </div>
 
-      <!-- Assessment -->
-      <div class="section-panel">
-        <button class="section-toggle open" onclick="toggleSection(this)">
-          <span class="section-toggle-left">
-            <span>📋</span>
-            Assessment
-            <span class="section-count count-blue" id="cnt-assessment">—</span>
-          </span>
-          <span class="section-chevron">▼</span>
-        </button>
-        <div class="section-body open" id="body-assessment">
-          <div class="assessment-grid">
-            <div class="assessment-col col-good">
-              <div class="assessment-col-title">✅ Went Well</div>
-              <div id="assess-good"></div>
+                    <ol class="stage-list" id="stage-list" aria-label="Pipeline stages">
+                        <li class="stage" data-stage="ingest">
+                            <span class="stage-status" aria-hidden="true"></span>
+                            <span class="stage-name">Ingest &amp; decode</span>
+                            <span class="stage-meta">Reading footage + telemetry</span>
+                        </li>
+                        <li class="stage" data-stage="vision">
+                            <span class="stage-status" aria-hidden="true"></span>
+                            <span class="stage-name">Vision analysis</span>
+                            <span class="stage-meta">Object &amp; scene detection</span>
+                        </li>
+                        <li class="stage" data-stage="anomaly">
+                            <span class="stage-status" aria-hidden="true"></span>
+                            <span class="stage-name">Anomaly detection</span>
+                            <span class="stage-meta">Flagging outliers</span>
+                        </li>
+                        <li class="stage" data-stage="threat">
+                            <span class="stage-status" aria-hidden="true"></span>
+                            <span class="stage-name">Threat assessment</span>
+                            <span class="stage-meta">Scoring risk vectors</span>
+                        </li>
+                        <li class="stage" data-stage="debrief">
+                            <span class="stage-status" aria-hidden="true"></span>
+                            <span class="stage-name">Debrief generation</span>
+                            <span class="stage-meta">Compiling report</span>
+                        </li>
+                    </ol>
+
+                    <button
+                        type="button"
+                        class="btn btn-ghost"
+                        id="cancel-btn"
+                        data-testid="cancel-btn"
+                    >Cancel debrief</button>
+                </div>
+            </section>
+
+            <!-- RESULT SECTION -->
+            <section
+                class="result-section"
+                id="result-section"
+                aria-labelledby="result-title"
+                hidden
+            >
+                <div class="section-head result-head">
+                    <div>
+                        <h2 id="result-title" class="section-title">
+                            <span class="section-index">03</span>
+                            <span>Mission debrief</span>
+                        </h2>
+                        <p class="section-desc" id="result-subtitle">Debrief compiled successfully.</p>
+                    </div>
+                    <div class="result-badges">
+                        <span class="badge badge-success" data-testid="result-badge">
+                            <span class="badge-dot" aria-hidden="true"></span>
+                            <span id="result-badge-text">COMPLETE</span>
+                        </span>
+                        <span class="badge badge-outline" id="result-duration" data-testid="result-duration">—</span>
+                    </div>
+                </div>
+
+                <!-- Summary tiles -->
+                <div class="tiles" id="summary-tiles" data-testid="summary-tiles"></div>
+
+                <!-- Expandable panels -->
+                <div class="panels" id="panels" data-testid="panels"></div>
+
+                <!-- Result actions -->
+                <div class="result-actions">
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        id="new-mission-btn"
+                        data-testid="new-mission-btn"
+                    >
+                        <span class="btn-label">New mission</span>
+                        <span class="btn-arrow" aria-hidden="true">→</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-ghost"
+                        id="download-json-btn"
+                        data-testid="download-json-btn"
+                    >Download debrief JSON</button>
+                </div>
+
+                <!-- GO LIVE banner (only shown for mock data) -->
+                <aside
+                    class="go-live"
+                    id="go-live"
+                    data-testid="go-live-banner"
+                    hidden
+                >
+                    <div class="go-live-inner">
+                        <div class="go-live-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                        </div>
+                        <div class="go-live-body">
+                            <span class="go-live-tag">TEST DATA</span>
+                            <p class="go-live-text">
+                                This debrief was rendered from a mock in-browser
+                                simulator. To go live, wire
+                                <code>/api/demo</code>, <code>/api/status/{id}</code>,
+                                <code>/api/upload</code> and <code>/api/result/{id}</code>
+                                to your ML backend. The frontend will call your
+                                endpoints automatically once reachable.
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="site-footer" role="contentinfo" id="docs">
+            <div class="container footer-inner">
+                <div class="footer-brand">
+                    <span>VISIONETICS · Edge Intelligence for Autonomous Systems</span>
+                </div>
+                <div class="footer-meta">
+                    <span>© 2026</span>
+                    <span aria-hidden="true">·</span>
+                    <span>Built for mission planners</span>
+                </div>
             </div>
-            <div class="assessment-col col-watch">
-              <div class="assessment-col-title">⚠ Watch Points</div>
-              <div id="assess-watch"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </footer>
 
-      <!-- Anomalies -->
-      <div class="section-panel">
-        <button class="section-toggle open" onclick="toggleSection(this)">
-          <span class="section-toggle-left">
-            <span>🚨</span>
-            Anomalies Detected
-            <span class="section-count count-red" id="cnt-anomalies">0</span>
-          </span>
-          <span class="section-chevron">▼</span>
-        </button>
-        <div class="section-body open" id="body-anomalies">
-          <div class="anomaly-list" id="anomaly-list"></div>
-        </div>
-      </div>
-
-      <!-- Timeline -->
-      <div class="section-panel">
-        <button class="section-toggle" onclick="toggleSection(this)">
-          <span class="section-toggle-left">
-            <span>⏱</span>
-            Event Timeline
-            <span class="section-count count-blue" id="cnt-timeline">0</span>
-          </span>
-          <span class="section-chevron">▼</span>
-        </button>
-        <div class="section-body" id="body-timeline">
-          <div class="timeline" id="timeline-list"></div>
-        </div>
-      </div>
-
-      <!-- Decision Points -->
-      <div class="section-panel">
-        <button class="section-toggle" onclick="toggleSection(this)">
-          <span class="section-toggle-left">
-            <span>🧠</span>
-            Decision Points
-            <span class="section-count count-amber" id="cnt-decisions">0</span>
-          </span>
-          <span class="section-chevron">▼</span>
-        </button>
-        <div class="section-body" id="body-decisions">
-          <div class="decision-list" id="decision-list"></div>
-        </div>
-      </div>
-
-      <!-- Interesting Moments -->
-      <div class="section-panel">
-        <button class="section-toggle" onclick="toggleSection(this)">
-          <span class="section-toggle-left">
-            <span>👁</span>
-            Interesting Moments
-            <span class="section-count count-amber" id="cnt-moments">0</span>
-          </span>
-          <span class="section-chevron">▼</span>
-        </button>
-        <div class="section-body" id="body-moments">
-          <div class="moments-list" id="moments-list"></div>
-        </div>
-      </div>
-
-      <!-- Download bar -->
-      <div class="download-bar">
-        <div class="download-info">
-          Debrief complete · Session: <span id="dl-session-id">—</span>
-        </div>
-        <div class="flex flex-gap">
-          <button class="btn btn-outline btn-sm" onclick="downloadJson()">⬇ JSON</button>
-          <button class="btn btn-success btn-sm" id="pdf-btn" onclick="downloadPdf()">⬇ PDF Report</button>
-        </div>
-      </div>
-
-    </div>
-
-  </main>
-
-  <!-- ── Toast ─────────────────────────────────────────────────────────── -->
-  <div class="toast" id="toast"></div>
-
-  <script src="/static/app.js"></script>
-</body>
+        <script src="/motion.js" defer></script>
+        <script src="/app.js" defer></script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a14308a629fe4faf',t:'MTc4Mjg4Mzk4NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
