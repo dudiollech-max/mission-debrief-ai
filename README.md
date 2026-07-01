@@ -200,3 +200,4 @@ MIT License — See [LICENSE](LICENSE) for details.
 ---
 
 *VisionWave AI Suite · Mission Debrief AI · Edge Intelligence for UAV Operations*
+# Force rebuild Wed Jul  1 08:34:40 EEST 2026
