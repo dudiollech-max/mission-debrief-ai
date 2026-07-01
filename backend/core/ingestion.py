@@ -346,8 +346,11 @@ def _extract_frames_ffmpeg(video_path: str, output_dir: Path) -> list[dict]:
             log.warning("ffprobe could not determine video duration")
             return []
 
-        # Calculate timestamps to extract
-        n_frames = min(MAX_FRAMES, max(1, int(duration / FRAME_INTERVAL)))
+        # Calculate timestamps to extract.
+        # Adapt interval for short videos so we always get at least 5 frames
+        # (or as many as possible for very short clips), up to MAX_FRAMES.
+        effective_interval = min(FRAME_INTERVAL, max(1, duration / min(MAX_FRAMES, 5)))
+        n_frames = min(MAX_FRAMES, max(1, int(duration / effective_interval)))
         timestamps = [i * (duration / n_frames) for i in range(n_frames)]
 
         frames = []
