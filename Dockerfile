@@ -31,6 +31,9 @@ RUN mkdir -p uploads output/pdfs output/frames
 # Expose port
 EXPOSE 8000
 
+# Force refresh timestamp (bust cache for rebuilds)
+RUN date > /etc/build-date
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
